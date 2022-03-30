@@ -12,7 +12,6 @@ export default function SearchCPO() {
     const [cpos, setCPOs] = useState([]);
     const [queryString, setQueryString] = useState("");
     const [isLoading, setIsLoading] = useState(false);
-    const [renderList, setRenderList] = useState(false)
 
     function validateForm() {
         return queryString.length > 0;
@@ -27,7 +26,6 @@ export default function SearchCPO() {
             const cpo_set = await searchCPO(queryString);
             setCPOs(cpo_set)
             setIsLoading(false);
-            setRenderList(true);
         }   catch (e) {
             onError(e);
             setIsLoading(false);
@@ -39,22 +37,12 @@ export default function SearchCPO() {
 
         if (name.Type === 'CollaborativeProjectOrder') {
             h_ref = 'cpo_details?' + name.Name;
-            //console.log(h_ref);
 
         }
         else {
-            let path = "/get_cpo?userInput=" + name.CollaborateProjectOrderId;
-            let cpoName = retrieve(path);
-
-            console.log('cpoName Function Test' + cpoName);
-
-            if(cpoName != null) {
-                console.log('Printing cpo name: ' + cpoName.Name);
-                h_ref = 'new_project?' + name.Name + '|' + cpoName.Name + '|' + name.Description + '|' + name.Status + '|' + name.LifecycleState;
-                console.log('h_ref: ' + h_ref);
-            }
+            h_ref = 'new_project?' + name.Name + '|' + name.parentCPO + '|' + name.Description + '|' + name.Status + '|' + name.LifecycleState + '|' + name.CompleteDateTimeStamp;
         }
-        return h_ref; //this is returning an object promise. Needs to return the value of h_ref. How do we do that within an async function? Other options?
+        return h_ref;
     }
 
     async function retrieve(value) {
@@ -66,19 +54,17 @@ export default function SearchCPO() {
         }
     }
 
-    function renderCPOs(){
-        if (renderList) {
-            return cpos['Items'].map(cpo => {
-                return (
-                    <>
-                        <br/>
-                        <a href = {setHref(cpo)}>
-                        <h4 className="CPOName">{cpo.Name}</h4>
-                        </a>
-                    </>
-                );
-            })
-        }
+    function renderCPOs(cpos){
+        return cpos.map(cpo => {
+            return (
+                <>
+                    <br/>
+                    <a href = {setHref(cpo)}>
+                    <h4 className="CPOName">{cpo.Name}</h4>
+                    </a>
+                </>
+            );
+        })
     }
 
     function searchCPO(cpo) {
@@ -111,7 +97,7 @@ export default function SearchCPO() {
                     <Nav.Link href="/new_cpo">Create CPO</Nav.Link>
                 </Nav.Item>
             </Nav>
-            {renderCPOs()}
+            {renderCPOs(cpos)}
         </div>
     );
 }

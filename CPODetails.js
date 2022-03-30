@@ -43,12 +43,13 @@ export default function CPODetails() {
             return(
             <>
                 <br/>
-                <a href = {setHref(project.Name, window.location.search.substring(1), project.Description, project.Status, project.LifecycleState)}>
+                <a href = {setHref(project.Name, window.location.search.substring(1), project.Description, project.Status, project.LifecycleState, project.CompleteDateTimeStamp)}>
                     <h4 className="ProjectName">Project {index + 1}: {project.Name}</h4>
                 </a>
                 <cell className="Description">Description: {project.Description}</cell>
                 <cell className="Status">Status: {project.Status}</cell>
                 <cell className="Project Lifecycle State">Project Lifecycle State: {project.LifecycleState}</cell>
+                <cell className="Completion Date">Completion Date: {project.CompleteDateTimeStamp}</cell>
             </>
             )
 
@@ -70,8 +71,8 @@ export default function CPODetails() {
         return str.replace("%20", " ");
     }
 
-    function setHref(name, CPO, description, status, lifecycleState){
-        var h_ref = 'new_project?' + name + "|" + CPO + "|" + description + "|" + status + "|" + lifecycleState;
+    function setHref(name, CPO, description, status, lifecycleState, completionDate){
+        var h_ref = 'new_project?' + name + "|" + CPO + "|" + description + "|" + status + "|" + lifecycleState + "|" + completionDate;
         return h_ref;
     }
 
