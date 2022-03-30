@@ -6,8 +6,6 @@ import LoaderButton from "../components/LoaderButton";
 import { onError } from "../libs/errorLib";
 import config from "../config";
 import { s3Upload } from "../libs/awsLib";
-import DatePicker from "react-datepicker";
-import 'react-datepicker/dist/react-datepicker.css'
 // import "./NewProject.css";
 
 export default function NewProject() {
@@ -22,8 +20,6 @@ export default function NewProject() {
     const [status, setStatus] = useState(getStatus(window.location.search.substring(1)));
     const [parentCPO, setParentCPO] = useState(getParentCPO(window.location.search.substring(1)));
     const [isLoading, setIsLoading] = useState(false);
-    const [completionDate, setCompletionDate] = useState(null)
-
 
     function validateForm() {
         return projectName.length > 0;
@@ -46,13 +42,6 @@ export default function NewProject() {
     async function handleSubmit(event) {
         event.preventDefault();
 
-        if(lifecycleState !== 'Active' && completionDate === null) {
-            alert(
-                'Please provide completion date for completed projects'
-            );
-            return;
-        }
-
         if(file1.current) {
             if(handleFileType(file1) !== 'pdf') {
                 alert(
@@ -72,7 +61,8 @@ export default function NewProject() {
             }
         }
 
-        if(originalLifecycleState === 'Active' && lifecycleState !== 'Active' && (file1.current === null || file2.current === null)) {
+
+        if(lifecycleState !== 'Active' && (file1.current === null || file2.current === null)) {
             alert(
               'Please include a file for the document and image for a transitioned or completed project'
             );
@@ -101,7 +91,7 @@ export default function NewProject() {
 
 
 
-            await createProject({ projectName, lifecycleState, status, parentCPO, description, documentName, imageName, completionDate});
+            await createProject({ projectName, lifecycleState, status, parentCPO, description, documentName, imageName});
 
             history.push("/");
         }   catch (e) {
@@ -111,6 +101,7 @@ export default function NewProject() {
     }
 
     function createProject(project) {
+        console.log(project)
         return API.post(config.apiGateway.NAME, "/projects", {
             body: project
         });
@@ -195,13 +186,6 @@ export default function NewProject() {
     //console.log('Original Lifecycle State:   ' + originalLifecycleState)
     //console.log('Lifecyclestate:   ' +  lifecycleState);
 
-    function epoch(date) {
-        //var test = Date.parse(date)
-        // console.log('Selected Date:   ' + test);
-        return Date.parse(date)
-    }
-
-
     return (
         <div className="NewProject">
             <Form onSubmit={handleSubmit}>
@@ -252,15 +236,6 @@ export default function NewProject() {
                         defaultValue={getDescription(window.location.search.substring(1))}
                         as="textarea"
                         onChange={(e) => setDescription(e.target.value)}
-                    />
-                </Form.Group>
-                <h2>Completion Date</h2>
-                <Form.Group controlId="completionDate" hidden={activeProject}>
-                    <DatePicker
-                            placeholderText="MM/dd/yyyy"
-                            selected={completionDate}
-                            onChange={date => setCompletionDate(epoch(date))}
-                            dateFormat='MM/dd/yyyy'
                     />
                 </Form.Group>
                 <Form.Group controlId="file1" hidden={activeProject}>
