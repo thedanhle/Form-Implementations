@@ -7,7 +7,7 @@ import { onError } from "../libs/errorLib";
 import Nav from "react-bootstrap/Nav";
 import config from "../config";
 
-//testing commit
+
 export default function SearchCPO() {
     const [cpos, setCPOs] = useState([]);
     const [queryString, setQueryString] = useState("");
@@ -34,20 +34,45 @@ export default function SearchCPO() {
         }
     }
 
-    function setHref(name){
-        var h_ref = 'cpo_details?' + name;
-        return h_ref;
+    function setHref(name) {
+        let h_ref = ' ';
+
+        if (name.Type === 'CollaborativeProjectOrder') {
+            h_ref = 'cpo_details?' + name.Name;
+            //console.log(h_ref);
+
+        }
+        else {
+            let path = "/get_cpo?userInput=" + name.CollaborateProjectOrderId;
+            let cpoName = retrieve(path);
+
+            console.log('cpoName Function Test' + cpoName);
+
+            if(cpoName != null) {
+                console.log('Printing cpo name: ' + cpoName.Name);
+                h_ref = 'new_project?' + name.Name + '|' + cpoName.Name + '|' + name.Description + '|' + name.Status + '|' + name.LifecycleState;
+                console.log('h_ref: ' + h_ref);
+            }
+        }
+        return h_ref; //this is returning an object promise. Needs to return the value of h_ref. How do we do that within an async function? Other options?
+    }
+
+    async function retrieve(value) {
+        let retrieval = await API.get(config.apiGateway.NAME, value);
+        if(retrieval != null) {
+            //console.log('Printing retrieval ' + retrieval);
+            console.log('Retrieval Name   ' + retrieval.Name);
+            return retrieval;
+        }
     }
 
     function renderCPOs(){
         if (renderList) {
-
             return cpos['Items'].map(cpo => {
-
                 return (
                     <>
                         <br/>
-                        <a href = {setHref(cpo.Name)}>
+                        <a href = {setHref(cpo)}>
                         <h4 className="CPOName">{cpo.Name}</h4>
                         </a>
                     </>
