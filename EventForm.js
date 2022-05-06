@@ -1,14 +1,11 @@
 import jQuery from "jquery";
 import $ from "jquery";
-import React, { Component, createRef } from "react";
-import ReactDOM from "react-dom";
+import React, {Component, createRef, useEffect, useState} from "react";
 import "../../src/test.css";
-//Fix CSS. BuildEventForm and EventForm Overlap
 import LoaderButton from "../components/LoaderButton";
 import Form from "react-bootstrap/Form";
 import config from "../config";
-import {s3Upload} from "../libs/awsLib";
-import {onError} from "../libs/errorLib";
+import {API} from "aws-amplify";
 
 window.jQuery = $;
 window.$ = $;
@@ -17,178 +14,127 @@ require("jquery-ui-sortable");
 require("formBuilder")
 require('formBuilder/dist/form-render.min.js')
 
+export default function SubmittableForm() {
+    const [isSubmitted, setIsSubmitted] = useState(false);
+    const [isLoading, setIsLoading] = useState(false);
+    const titleText = 'Thank you for your submission'
+    const description = 'Your submission has been recorded and is under review'
 
-jQuery(function($) {
-    console.log('SHOULD RUN ONCE')
-    var fbRender = document.getElementById('fb-render')
-    // TODO formData should be what's retrieved from the form builder via database: GET
-    const formData = [
-        {
-            type: "text",
-            label: "Text Field",
-            className: "form-control",
-            name: "text-1478701075825",
-            userData: ["user entered data"]
-        },
-        {
-            type: "checkbox-group",
-            label: "Checkbox Group",
-            className: "checkbox-group",
-            name: "checkbox-group-1478704652409",
-            values: [
-                {
-                    label: "Option 1",
-                    value: "option-1",
-                    selected: true
-                },
-                {
-                    label: "Option 2",
-                    value: "option-2"
-                },
-                {
-                    label: "Option 3",
-                    value: "option-3",
-                    selected: true
+    useEffect(() => {
+        jQuery(async function ($) {
+                var fbRender = document.getElementById('fb-render')
+                let value = 'formTest8'                                // TODO hard coded form name. Might need to modulate for different rendered forms
+                async function getBuiltForm() {
+                    let path = "/formBuilder?userInput=" + value
+                    // console.log(path)
+                    let formData = await API.get(config.projects.apiGateway.NAME, path)            // getting form to be rendered
+                    // console.log('getting formData:   ' + formData);
+                    return formData
                 }
-            ]
-        },
-        {
-            type: "select",
-            label: "Select",
-            className: "form-control",
-            name: "select-1478701076382",
-            values: [
-                {
-                    label: "Option 1",
-                    value: "option-1",
-                    selected: true
-                },
-                {
-                    label: "Option 2",
-                    value: "option-2"
-                },
-                {
-                    label: "Option 3",
-                    value: "option-3"
+
+                let builtForm = await getBuiltForm()
+                const formData = builtForm['form'];            // getting the built form
+                // console.log('formData ' + formData)
+                const form_id = builtForm["form_id"]           // getting the built form id so that we know where the submission came from
+                // console.log(form_id)
+
+                var formRenderOpts = { //providing options for form to be rendered
+                    formData,
+                    dataType: 'json'
+                };
+
+                $(fbRender).formRender(formRenderOpts);  // rendering the form
+
+                const getUserDataBtn = document.getElementById("get-user-data");
+                if (getUserDataBtn === null) {           // fixing error where getUserDataBtn is null
+                    return;
                 }
-            ]
-        },
-        {
-            type: "textarea",
-            label: "Text Area",
-            className: "form-control",
-            name: "textarea-1478701077511"
-        }
-    ];
 
-    var formRenderOpts = {
-        formData,
-        dataType: 'json'
-    };
+                getUserDataBtn.addEventListener( //listen on button
+                    "click",
+                    () => {
+                        let rawData = $(fbRender).formRender("userData")
 
-    $(fbRender).formRender(formRenderOpts);
-});
+                        let dataJSON = {}
+                        for (const element of rawData) {
+                            if(element.userData !== undefined) {
+                                //console.log(element)
+                                //console.log(element.userData[0])
+                                dataJSON[element.label] = element.userData[0];
+                            }
+                        }
 
-
-
-export default function testFunction() {
-
-    async function handleSubmit(event) {
-        //TODO Button should not have to be clicked more than once to see JSON
-        console.log('handle submit')
-        event.preventDefault();
-        const getUserDataBtn = document.getElementById("get-user-data");
-        const fbRender = document.getElementById("fb-render");
-        const originalFormData = [
-            {
-                type: "text",
-                label: "Text Field",
-                className: "form-control",
-                name: "text-1478701075825",
-                userData: ["user entered data"]
-            },
-            {
-                type: "checkbox-group",
-                label: "Checkbox Group",
-                className: "checkbox-group",
-                name: "checkbox-group-1478704652409",
-                values: [
-                    {
-                        label: "Option 1",
-                        value: "option-1",
-                        selected: true
+                        dataJSON["form_id"] = form_id                        // adding builtForm id to submission
+                        var name = value
+                        let path = "/formBuilder/submission?formName=" + name
+                        console.log('Submitting...')
+                        setIsSubmitted(true)
+                        try {
+                            //console.log('try')
+                            setIsLoading(true)
+                            return API.post(config.projects.apiGateway.NAME, path, {
+                                body: dataJSON,
+                            })
+                        } finally {
+                            console.log('Submitted')
+                        }
                     },
-                    {
-                        label: "Option 2",
-                        value: "option-2"
-                    },
-                    {
-                        label: "Option 3",
-                        value: "option-3",
-                        selected: true
-                    }
-                ]
-            },
-            {
-                type: "select",
-                label: "Select",
-                className: "form-control",
-                name: "select-1478701076382",
-                values: [
-                    {
-                        label: "Option 1",
-                        value: "option-1",
-                        selected: true
-                    },
-                    {
-                        label: "Option 2",
-                        value: "option-2"
-                    },
-                    {
-                        label: "Option 3",
-                        value: "option-3"
-                    }
-                ]
-            },
-            {
-                type: "textarea",
-                label: "Text Area",
-                className: "form-control",
-                name: "textarea-1478701077511"
-            }
-        ];
-        //TODO post user form to database: POST
-        jQuery(function($) {
-            console.log('jquery')
-            const formData = JSON.stringify(originalFormData);
-            $(fbRender).formRender({formData});
-            getUserDataBtn.addEventListener(
-                "click",
-                () => {
-                    window.alert(window.JSON.stringify($(fbRender).formRender("userData")));
-                },
-                false
-            );
+                )
         });
+    })
 
+    // TODO need to add form validation to make sure fields are entered correctly
+    // TODO need to handle file uploads?
+
+    function renderThankYouPage() { // page after submission
+        return (
+            <div className="wrapper wrapper_midLimit">
+                <div className="contentBlock">
+                    <div className="contentBlock-hd">
+                        <h2 className="hdg hdg_2">{titleText}</h2>
+                    </div>
+                    <div className="contentBlock-bd contentBlock-bd_push">
+
+                        <p>{description}</p>
+                        <div className="block block_2up mix-block_gutter">
+                            <div className="block-item">
+                                <div className="btns">
+                                    <a href="/login">Return to Home</a>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        );
+    }
+
+    function renderUserForm() { // render form to submit
+        return (
+            <div className="form-renderer">
+                <Form>
+                    <form id={"fb-render"}>
+                    </form>
+                    <LoaderButton
+                        id = "get-user-data"
+                        block
+                        type="submit"
+                        size="lg"
+                        variant="primary"
+                        isLoading={isLoading}
+                    >
+                        Submit
+                    </LoaderButton>
+                </Form>
+            </div>
+        );
     }
 
     return (
-        <div className="testing">
-            <Form onSubmit={handleSubmit}>
-                <form id={"fb-render"}>
-
-                </form>
-                <LoaderButton
-                    id = "get-user-data"
-                    block
-                    type="submit"
-                    size="lg"
-                    variant="primary"
-                >
-                    Submit
-                </LoaderButton>
-            </Form>
+        <div className="SubmittableForm">
+            <br/>
+            <br/>
+            {!isSubmitted ? renderUserForm() : renderThankYouPage()}
         </div>
     );
 }
